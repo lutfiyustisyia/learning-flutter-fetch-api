@@ -14,73 +14,62 @@ class UserListView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "Fetch API",
+          "User List",
           style: TextStyle(
             fontWeight: FontWeight.bold,
           ),
         ),
+        centerTitle: true,
+        backgroundColor: Theme.of(context).colorScheme.primary,
       ),
-      body: BlocBuilder<UserListCubit, UserListState>(
-        builder: (context, state) {
-          if (state is UserListSuccess) {
-            return Scaffold(
-              body: ListView.builder(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.blue.shade200,
+              Colors.blue.shade400,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: BlocBuilder<UserListCubit, UserListState>(
+          builder: (context, state) {
+            if (state is UserListSuccess) {
+              return ListView.builder(
+                padding: const EdgeInsets.all(8.0),
                 itemCount: state.users.length,
                 itemBuilder: (context, index) {
-                  // Ambil teks body maksimal 55 karakter atau kurang
                   String bodyText = state.users[index].body.length > 55
                       ? state.users[index].body.substring(0, 55) + '...'
                       : state.users[index].body;
 
-                  return Dismissible(
-                    key: UniqueKey(), // Unique key for each item
-                    direction: DismissDirection.endToStart,
-                    background: Container(
-                      alignment: Alignment.centerRight,
-                      padding: EdgeInsets.only(right: 20.0),
-                      color: Colors.red,
-                      child: Icon(Icons.delete, color: Colors.white),
+                  return Card(
+                    elevation: 4,
+                    margin: const EdgeInsets.symmetric(
+                        vertical: 8.0, horizontal: 16.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
                     ),
-                    confirmDismiss: (DismissDirection direction) async {
-                      return await showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: const Text("Confirm"),
-                            content: const Text(
-                                "Are you sure you want to delete this item?"),
-                            actions: <Widget>[
-                              TextButton(
-                                onPressed: () =>
-                                    Navigator.of(context).pop(false),
-                                child: const Text("CANCEL"),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop(true);
-                                },
-                                child: const Text("DELETE"),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                    onDismissed: (DismissDirection direction) {
-                      // Call your cubit to delete the item
-                      context
-                          .read<UserListCubit>()
-                          .deleteUser(state.users[index].id);
-                    },
                     child: ListTile(
-                      title: Text(state.users[index].title),
+                      title: Text(
+                        state.users[index].title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
                       subtitle: Text(bodyText),
-                      leading: const CircleAvatar(
-                        backgroundColor: Color.fromRGBO(255, 64, 129, 1),
-                        child: Icon(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.blue.shade700,
+                        child: const Icon(
                           Icons.person,
                           color: Colors.white,
                         ),
+                      ),
+                      trailing: Icon(
+                        Icons.chevron_right,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                       onTap: () {
                         Navigator.push(
@@ -91,42 +80,75 @@ class UserListView extends StatelessWidget {
                           ),
                         );
                       },
+                      onLongPress: () async {
+                        bool? confirmDelete = await showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text("Confirm"),
+                              content: const Text(
+                                  "Are you sure you want to delete this item?"),
+                              actions: <Widget>[
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(false),
+                                  child: const Text("CANCEL"),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop(true);
+                                  },
+                                  child: const Text("DELETE"),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+
+                        if (confirmDelete == true) {
+                          context
+                              .read<UserListCubit>()
+                              .deleteUser(state.users[index].id);
+                        }
+                      },
                     ),
                   );
                 },
-              ),
-              floatingActionButton: FloatingActionButton(
+              );
+            }
+
+            if (state is UserListLoading) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+
+            if (state is UserListError) {
+              return Center(
+                child: Text(
+                  'Error: ${state.message}',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              );
+            }
+
+            return Center(
+              child: ElevatedButton(
                 onPressed: () {
                   context.read<UserListCubit>().fetchUser();
                 },
-                child: const Icon(Icons.refresh),
+                child: const Text("Refresh"),
               ),
             );
-          }
-
-          if (state is UserListLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-
-          if (state is UserListError) {
-            return const Center(
-              child: CircularProgressIndicator(
-                backgroundColor: Colors.black,
-              ),
-            );
-          }
-
-          return Center(
-            child: ElevatedButton(
-              onPressed: () {
-                context.read<UserListCubit>().fetchUser();
-              },
-              child: const Text("Refresh"),
-            ),
-          );
+          },
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          context.read<UserListCubit>().fetchUser();
         },
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        child: const Icon(Icons.refresh),
       ),
     );
   }

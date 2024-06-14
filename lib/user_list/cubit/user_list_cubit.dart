@@ -6,6 +6,9 @@ import 'package:futter_user_list_cubit/user_list/model/user.dart';
 class UserListCubit extends Cubit<UserListState> {
   UserListCubit() : super(const UserListState.initial());
 
+  // Local list to store users
+  List<User> _users = [];
+
   Future<void> fetchUser() async {
     try {
       emit(const UserListState.loading());
@@ -14,9 +17,8 @@ class UserListCubit extends Cubit<UserListState> {
 
       if (res.statusCode == 200) {
         final List<dynamic> data = res.data;
-        final List<User> users =
-            data.map<User>((d) => User.fromJson(d)).toList();
-        emit(UserListState.success(users));
+        _users = data.map<User>((d) => User.fromJson(d)).toList();
+        emit(UserListState.success(_users));
       } else {
         emit(UserListState.error("Error loading data: ${res.data.toString()}"));
       }
@@ -25,19 +27,8 @@ class UserListCubit extends Cubit<UserListState> {
     }
   }
 
-  deleteUser(int userId) {
-    state.maybeWhen(
-      success: (List<User> users) {
-        final updatedUsers = users.where((user) => user.id != userId).toList();
-        emit(UserListState.success(updatedUsers));
-      },
-      error: (String message) {
-        emit(UserListState.error(
-            "Cannot delete user, state status is error: $message"));
-      },
-      orElse: () {
-        // Handle cases where state is not success or error
-      },
-    );
+  void deleteUser(int userId) {
+    _users = _users.where((user) => user.id != userId).toList();
+    emit(UserListState.success(_users));
   }
 }
